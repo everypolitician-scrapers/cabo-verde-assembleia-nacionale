@@ -11,18 +11,18 @@ Capybara.default_driver = :poltergeist
 def scrape(pageno)
   warn "Scraping page #{pageno}"
   table = page.find_by_id('ctl00_ContentPlaceHolder1_GridView1')
-  table.all('a[href*="Deputado="]').each do |mp|
-    tr = mp.find(:xpath, './/ancestor::tr[1]')
-    tds = tr.all('td')
-    data = { 
-      id: mp['href'][/(\d+)$/, 1],
+  table.all(:xpath, './tbody/tr[position() > 1 and position() < last()]').each do |mp|
+    tds = mp.all(:xpath, './td')
+    link = tds[0].all('a')[0]
+    data = {
+      id: link[:href][/(\d+)$/, 1],
       name: tds[0].text.strip,
+      image: "http://www.parlamento.cv/#{tds[0].find('img')[:src]}",
       party: tds[1].text.strip,
       party_id: tds[1].text.strip,
       area: tds[2].text.strip,
-      executive: tds[3].text.strip,
       term: 8,
-      source: mp['href'],
+      source: "http://www.parlamento.cv/#{link[:href]}",
     }
     puts data
     ScraperWiki.save_sqlite([:id, :term], data)
@@ -46,8 +46,5 @@ term = {
 }
 ScraperWiki.save_sqlite([:id], term, 'terms')
 
-visit 'http://www.parlamento.cv/deputado.aspx'
+visit 'http://www.parlamento.cv/deputados2.aspx'
 scrape(1)
-
-
-
