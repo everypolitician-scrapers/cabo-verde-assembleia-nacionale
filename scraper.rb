@@ -21,10 +21,9 @@ def scrape(pageno)
       party: tds[1].text.strip,
       party_id: tds[1].text.strip,
       area: tds[2].text.strip,
-      term: 8,
+      term: 9,
       source: "http://www.parlamento.cv/#{link[:href]}",
     }
-    puts data
     ScraperWiki.save_sqlite([:id, :term], data)
   end
 
@@ -35,16 +34,6 @@ def scrape(pageno)
     scrape(pageno)
   end
 end
-
-
-
-term = {
-  id: 8,
-  name: 'VIII Legislatura',
-  start_date: '2011-03-11',
-  source: 'http://www.parlamento.cv/GDActasVIILegislatura.aspx?codActas=182',
-}
-ScraperWiki.save_sqlite([:id], term, 'terms')
 
 visit 'http://www.parlamento.cv/deputados2.aspx'
 scrape(1)
