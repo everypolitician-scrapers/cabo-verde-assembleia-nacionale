@@ -30,8 +30,10 @@ def scrape(pageno)
   pageno += 1
   navbar = table.all('tr').last
   if next_page = navbar.all('a[href*="Page"]').find { |n| n.text == pageno.to_s }
-    navbar.click_link(pageno.to_s)
-    scrape(pageno)
+    next_page.click
+    # Waiting around for ObsoleteNode to be triggered, meaning the MP table's
+    # been updated
+    {} while navbar.visible? rescue scrape(term, pageno)
   end
 end
 
