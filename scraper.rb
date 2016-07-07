@@ -17,12 +17,20 @@ end
 include Capybara::DSL
 Capybara.default_driver = :poltergeist
 
+
+def when_obsolete(el)
+  while el.visible?
+  end
+rescue Capybara::Poltergeist::ObsoleteNode
+  yield
+end
+
 def scrape(term, pageno = 1)
   warn "Scraping page #{pageno} of the #{term}th term"
   table = page.find_by_id('ctl00_ContentPlaceHolder1_GridView1')
   table.all(:xpath, './tbody/tr[position() > 1 and position() < last()]').each do |mp|
     tds = mp.all(:xpath, './td')
-    link = tds[0].all('a')[0]
+    link = tds[0].first('a')
     data = {
       id: link[:href][/(\d+)$/, 1],
       name: tds[0].text.strip,
@@ -42,7 +50,13 @@ def scrape(term, pageno = 1)
     next_page.click
     # Waiting around for ObsoleteNode to be triggered, meaning the MP table's
     # been updated
-    {} while navbar.visible? rescue scrape(term, pageno)
+    when_obsolete(navbar) do
+      navbar = table.all('tr').last
+      # Now we've got to resubmit the form 'cause the term selection
+      # is lost in-between pages
+      page.find_by_id('ctl00_ContentPlaceHolder1_btnOK').click
+      when_obsolete(navbar) { scrape(term, pageno) }
+    end
   end
 end
 
@@ -53,10 +67,10 @@ def main
   # Reloading the web page to return to the 1st page of the table 'cause it's
   # easier that way
   visit 'http://www.parlamento.cv/deputados2.aspx'
-  sentinel = page.find_by_id('ctl00_ContentPlaceHolder1_GridView1').all('tr').last
+  navbar = page.find_by_id('ctl00_ContentPlaceHolder1_GridView1').all('tr').last
   page.find_by_id('ctl00_ContentPlaceHolder1_DropDownList1').select('VIII')
   page.find_by_id('ctl00_ContentPlaceHolder1_btnOK').click
-  {} while sentinel.visible? rescue scrape(8)
+  when_obsolete(navbar) { scrape(8) }
 end
 
 main
